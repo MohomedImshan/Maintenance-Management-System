@@ -1,7 +1,10 @@
 import  express from "express"
 import bodyParser from "body-parser"
-import mysql from "mysql"
 import cors from "cors"
+import registerRoutes from './routes/registerRoutes.js' 
+import db from './database/db.js'
+import loginRoutes from './routes/loginRoutes.js'
+
 
 const app = express()
 const port = 8800
@@ -11,79 +14,16 @@ app.use(cors())
 app.use(bodyParser.json())
 
 
-const db=mysql.createConnection({
-    host:'127.0.0.1',
-    user:'root',
-    password:'',
-    database:'maintenance-management-system'
-})
-db.connect((err)=>{
-    if(err){
-        console.error("Database connection failed : "+err.message)
-    }else{
-        console.log("Connected to mysql database")
-    }
-})
 
-app.post('/register',(req,res)=>{
-    const sql = "INSERT INTO user_table (`email`,`password`,`user_name`,`position`) VALUES(?,?,?,?)  "
-    const values = [
-        req.body.email,
-        req.body.password,
-        req.body.user_name,
-        req.body.position
-    ]
-    db.query(sql,values,(err,data)=>{
-        if(err){
-            return res.json("Error")
-        }
-        return res.json(data)
-    })
-})
+app.use('/api/login',loginRoutes)
+app.use('/api/register',registerRoutes)
 
-app.post('/login',(req,res)=>{
-    const sql = "SELECT * FROM user_table WHERE `email` =? AND `password`=?  "
-    
-    db.query(sql,[req.body.email,req.body.password],(err,data)=>{
-        if(err){
-            return res.json("Error")
-        }
-        if(data.length > 0){
-            return res.json("Success")
-        }else{
-            return res.json("Failed")
-        }
-    })
-})
 
-// app.get("/Home",(req,res)=>{
-//     const sqlUser ="SELECT * FROM user_table"
-    
-
-//     db.query(sqlUser,(err,userData)=>{
-//         if(err){
-//             return res.status(500).json({error:err.message})
-//         }
-//         return res.json({userData})
- 
-//     })
-// })
-// app.get("/Home",(req,res)=>{
-    
-//     const sqlParts ="SELECT * FROM spare_parts"
-
-//     db.query(sqlParts,(err,partsData)=>{
-//         if(err){
-//             return res.status(500).json({error:err.message})
-//         }
-//         return res.json({partsData})
-//     })
-// })
 
 // Route to fetch user data
-app.get("/Home", async (req, res) => {
+app.get("/User", async (req, res) => {
     try {
-        console.log("Fetching user data...");
+        
         const sqlUser = "SELECT * FROM user_table";
         const userData = await new Promise((resolve, reject) => {
             db.query(sqlUser, (err, data) => {
@@ -91,7 +31,7 @@ app.get("/Home", async (req, res) => {
                 resolve(data);
             });
         });
-        console.log("User data fetched:", userData);
+        
 
         return res.json({ users: userData });
 
@@ -102,31 +42,41 @@ app.get("/Home", async (req, res) => {
 });
 
 // Route to fetch spare parts data
-app.get("/Spareparts", async (req, res) => {
-    try {
-        console.log("Fetching spare parts data...");
-        const sqlParts = "SELECT * FROM spare_parts";
-        const partsData = await new Promise((resolve, reject) => {
-            db.query(sqlParts, (err, data) => {
+app.get("/Spareparts", async (req,res)=>{
+    try{
+        const sql = "SELECT * FROM spare_parts"
+
+        const partsdata = await new Promise((resolve, reject) => {
+            db.query(sql, (err, data) => {
                 if (err) return reject(err);
                 resolve(data);
             });
         });
-        console.log("Spare parts data fetched:", partsData);
-
-        return res.json({ spareParts: partsData });
-
-    } catch (err) {
-        console.error("Error occurred while fetching spare parts data:", err.message);
-        return res.status(500).json({ error: err.message });
+        return res.json({ spareParts: partsdata });
+        
+        // db.query(sql,(err,partsdata)=>{
+        //     if(err){
+        //         console.error("Error occurred while fetching spare parts data:",err.message)
+        //         return res.json({error:"Error fetching spare parts data"})
+        //     }
+        //     return res.json({items:partsdata})
+            
+        // })
+    }catch(err){
+        return res.json({error:"Unexpected server error"})
     }
-});
+})
 
-
-
-
-
-
+app.post("/Spareparts",async(req,res)=>{
+    try{
+        const {department,type,item,quantity} = req.body
+        const sql = "INSERT INTO spare_parts (department,type,item,quantity) VALUES (?,?,?,?)"
+        await db.query(sql,[department,type,item,quantity])
+        res.json({message:"Spare part added successfully"})
+    }catch(err){
+        res.json({message:"Server error"})
+    }
+})
 
 app.get('/Update/:id',(req,res)=>{
     const {id} = req.params.id
@@ -151,5 +101,22 @@ app.put('/Update/:id',(req,res)=>{
     })
 })
 
+app.get("/Notifications",(req,res)=>{
+    try{
+        const sql = "SELECT * FROM requests"
+
+        db.query(sql,(err,data)=>{
+            if(err){
+                console.error("Error fetching notification : ",err.message)
+                return res.json({error:"Error fetching notifications"})
+            }
+            return res.json({notification:data})
+        })
+    }catch(err)
+    {
+        console.error("Unexpected server error :",err.message)
+        return res.json({error:"Unexpected server error"})
+    }
+})
 
 app.listen(8800,()=>console.log(`Listen on ${port}`))
