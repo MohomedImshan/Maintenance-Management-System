@@ -4,6 +4,7 @@ import cors from "cors"
 import registerRoutes from './routes/registerRoutes.js' 
 import db from './database/db.js'
 import loginRoutes from './routes/loginRoutes.js'
+// import engineerroute from './Engineer/engineerroute.js'
 
 
 const app = express()
@@ -17,8 +18,25 @@ app.use(bodyParser.json())
 
 app.use('/api/login',loginRoutes)
 app.use('/api/register',registerRoutes)
+// app.use('/Engineer',engineerroute)
 
+app.get('/Engineer',(req,res)=>{
+    try{
 
+        const sql = "SELECT * FROM requests WHERE status='pending'"
+         db.query(sql,(err,data)=>{
+            if(err){
+                console.error("Error fetching notification :",err.message)
+                return res.json({error:"Error "})
+            }
+            return res.json({works : data})
+        })
+
+    }catch(err){
+        console.error("Unexpected server error :",err.message)
+        return res.json({error:"Unexpected server error"})
+    }
+})
 
 // Route to fetch user data
 app.get("/User", async (req, res) => {
@@ -118,5 +136,36 @@ app.get("/Notifications",(req,res)=>{
         return res.json({error:"Unexpected server error"})
     }
 })
+app.post('/request',async (req,res)=>{
+    try{
+        const {machine_code,department,Type,description,name_of_technician,date_and_time,requested_parts}=req.body
+        const sql1 = "INSERT INTO requests (machine_code,department,Type,description,name_of_technician,date_and_time) VALUES (?,?,?,?,?,?)" 
+    }catch(err){
 
+    }
+})
+app.post("/Spareparts",async(req,res)=>{
+    try{
+        const {department,type,item,quantity} = req.body
+        const sql = "INSERT INTO spare_parts (department,type,item,quantity) VALUES (?,?,?,?)"
+        await db.query(sql,[department,type,item,quantity])
+        res.json({message:"Spare part added successfully"})
+    }catch(err){
+        res.json({message:"Server error"})
+    }
+})
+app.put("/Spareparts/:id",async(req,res)=>{
+    try{
+        const {id} = req.params
+        const {quantity} = req.body
+        const sql = "UPDATE spare_parts SET quantity = ? WHERE id=?"
+        db.query(sql,[quantity, id],(err,result)=>{
+            if(err) return res.status(500).send(err)
+            if(result.affectedRows === 0) return res.status(404).send("Item not found")
+            res.send('Data updated successfully')
+        })
+    }catch(err){
+        res.status(500).send("server error")
+    }
+})
 app.listen(8800,()=>console.log(`Listen on ${port}`))
