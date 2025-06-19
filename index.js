@@ -24,6 +24,7 @@ app.get('/Engineer',(req,res)=>{
     try{
 
         const sql = "SELECT * FROM requests WHERE status='pending'"
+       
          db.query(sql,(err,data)=>{
             if(err){
                 console.error("Error fetching notification :",err.message)
@@ -36,6 +37,36 @@ app.get('/Engineer',(req,res)=>{
         console.error("Unexpected server error :",err.message)
         return res.json({error:"Unexpected server error"})
     }
+})
+app.get('/Engineer',(req,res)=>{
+    try{
+
+        const sql = "SELECT * FROM user_table WHERE status='Available'"
+       
+         db.query(sql,(err,data)=>{
+            if(err){
+                console.error("Error fetching notification :",err.message)
+                return res.json({error:"Error "})
+            }
+            return res.json({users : data})
+        })
+
+    }catch(err){
+        console.error("Unexpected server error :",err.message)
+        return res.json({error:"Unexpected server error"})
+    }
+})
+
+app.put('/Engineer/:id',(req,res)=>{
+    const {id} =req.params
+    const {requested_parts} = req.body
+    const query = 'UPDATE works SET requested_parts = ? WHERE id =?'
+
+    db.query(query,[requested_parts,id],(err,result)=>{
+        if(err) return res.json(err)
+
+        res.json({message:"Work Updated successfully"})
+    })
 })
 
 // Route to fetch user data
@@ -123,12 +154,12 @@ app.get("/Notifications",(req,res)=>{
     try{
         const sql = "SELECT * FROM requests"
 
-        db.query(sql,(err,data)=>{
+        db.query(sql,(err,results)=>{
             if(err){
                 console.error("Error fetching notification : ",err.message)
                 return res.json({error:"Error fetching notifications"})
             }
-            return res.json({notification:data})
+            return res.json({Items:results})
         })
     }catch(err)
     {
